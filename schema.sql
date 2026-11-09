@@ -43,7 +43,7 @@ create table timetable (
 
 -- รหัสสำหรับสมัครเป็นครู (เปลี่ยนค่า CHANGE_ME ก่อนใช้งานจริง)
 create table app_settings (key text primary key, value text not null);
-insert into app_settings values ('teacher_code', 'CHANGE_ME');
+insert into app_settings values ('68319010011', 'CHANGE_ME');
 alter table app_settings enable row level security; -- ไม่มี policy = เข้าถึงจากเว็บไม่ได้
 
 create function is_teacher() returns boolean
@@ -55,7 +55,7 @@ language plpgsql security definer set search_path = public as $$
 declare r text := 'student';
 begin
   if new.raw_user_meta_data->>'role' = 'teacher'
-     and new.raw_user_meta_data->>'code' = (select value from app_settings where key = 'teacher_code') then
+     and new.raw_user_meta_data->>'code' = (select value from app_settings where key = '68319010011') then
     r := 'teacher';
   end if;
   insert into profiles (id, full_name, role, class_id)
