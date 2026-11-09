@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ระบบจัดตารางสอน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+:root{--navy:#0b2447;--navy2:#19376d;--bg:#f4f6fb;--line:#dbe2ee;--tx:#18212f;--mut:#5a6577;--err:#b42318;--ok:#067647;--hl:#e8eef9}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Noto Sans Thai',system-ui,sans-serif;background:var(--bg);color:var(--tx);font-size:16px;line-height:1.6}
+header{background:var(--navy);color:#fff;display:flex;align-items:center;gap:10px;padding:12px 20px;flex-wrap:wrap}
+header h1{font-size:1.15rem;margin:0;font-weight:700;margin-right:auto}
+header .who{font-size:.9rem;opacity:.9}
+main{max-width:1100px;margin:0 auto;padding:20px 16px 48px}
+button,select,input{font:inherit}
+button{cursor:pointer;border:1px solid var(--navy);background:var(--navy);color:#fff;padding:8px 16px;border-radius:6px;font-weight:500}
+button:hover{background:var(--navy2)}
+button.ghost{background:#fff;color:var(--navy)}
+button.ghost:hover{background:var(--hl)}
+header button.ghost{background:transparent;color:#fff;border-color:#8fa3c7}
+header button.ghost:hover{background:var(--navy2)}
+button.danger{background:#fff;color:var(--err);border-color:#e4b4af;padding:4px 10px}
+:focus-visible{outline:3px solid #6d8fd6;outline-offset:2px}
+input,select{padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;min-height:40px;max-width:100%}
+.tabs{display:flex;gap:4px;border-bottom:2px solid var(--line);margin-bottom:18px}
+.tabs button{background:none;color:var(--mut);border:0;border-bottom:3px solid transparent;border-radius:0;padding:10px 16px;margin-bottom:-2px}
+.tabs button.on{color:var(--navy);border-bottom-color:var(--navy);font-weight:700}
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.bar .sp{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.wrap{overflow-x:auto;background:#fff;border:1px solid var(--line);border-radius:8px}
+table.tt{border-collapse:collapse;width:100%;min-width:680px}
+.tt th,.tt td{border:1px solid var(--line);padding:8px;text-align:center;vertical-align:top;font-size:.9rem}
+.tt th{background:var(--navy);color:#fff;font-weight:500}
+.tt th:first-child{width:64px}
+.tt td{height:78px;min-width:110px}
+.tt td.f{background:var(--hl)}
+.tt td.s{background:#fff7e0}
+.tt b{display:block;color:var(--navy)}
+.tt small{color:var(--mut);display:block}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:16px}
+.card h3{margin:0 0 10px;font-size:1.05rem;color:var(--navy)}
+.card form{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.card form input[type=text]{flex:1;min-width:120px}
+ul.l{list-style:none;margin:0;padding:0;max-height:260px;overflow:auto}
+ul.l li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line);font-size:.92rem}
+ul.l small{color:var(--mut)}
+.auth{max-width:420px;margin:40px auto}
+.auth form{display:grid;gap:12px}
+.auth label{display:grid;gap:4px;font-weight:500;font-size:.92rem}
+.link{background:none;border:0;color:var(--navy2);text-decoration:underline;padding:4px}
+.link:hover{background:none}
+.msg{padding:10px 14px;border-radius:6px;margin-bottom:14px;font-size:.92rem}
+.msg.err{background:#fdecea;color:var(--err)}.msg.ok{background:#e7f6ee;color:var(--ok)}
+dialog{border:0;border-radius:10px;max-width:640px;width:calc(100% - 32px);padding:0}
+dialog::backdrop{background:rgba(11,36,71,.5)}
+dialog .h{background:var(--navy);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center}
+dialog .b{padding:16px 22px 22px;max-height:70vh;overflow:auto}
+dialog h4{color:var(--navy);margin:16px 0 4px}
+dialog ol{margin:4px 0;padding-left:22px}
+.hint{color:var(--mut);font-size:.9rem}
+@media(max-width:600px){header{padding:10px 12px}main{padding:14px 10px}.bar .sp{margin-left:0}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <h1>ระบบจัดตารางสอน</h1>
+  <span class="who" id="who"></span>
+  <button class="ghost" id="guideBtn">คู่มือการใช้งาน</button>
+  <button class="ghost" id="outBtn" hidden>ออกจากระบบ</button>
+</header>
+<main id="app"></main>
+
+<dialog id="guide">
+  <div class="h"><strong>คู่มือการใช้งาน</strong><button class="ghost" style="color:#fff;border-color:#8fa3c7;background:transparent" onclick="guide.close()">ปิด</button></div>
+  <div class="b">
+    <h4>สำหรับนักเรียน</h4>
+    <ol>
+      <li>กด สมัครสมาชิก เลือกบทบาท นักเรียน และเลือกห้องเรียนของตนเอง</li>
+      <li>เมื่อเข้าสู่ระบบ จะเห็นตารางสอนของห้องตนเองทันที</li>
+      <li>เปลี่ยนมุมมองเป็นตารางของห้องอื่น ครู หรือห้องเรียนพิเศษได้จากช่องเลือกด้านบนตาราง</li>
+    </ol>
+    <h4>สำหรับครู</h4>
+    <ol>
+      <li>สมัครสมาชิกโดยเลือกบทบาท ครู และกรอกรหัสครูที่ผู้ดูแลระบบกำหนด</li>
+      <li>เมนู ข้อมูลพื้นฐาน: เพิ่มห้องเรียน (ชั้น) เพิ่มห้องสอน และติ๊ก ห้องพิเศษ หากเป็นห้องปฏิบัติการ ห้องคอมพิวเตอร์ ฯลฯ</li>
+      <li>เพิ่มรายวิชา: ระบุชื่อวิชา ห้องเรียน ครูผู้สอน จำนวนคาบต่อสัปดาห์ และติ๊ก ต้องใช้ห้องพิเศษ หากวิชานั้นสอนได้เฉพาะห้องพิเศษ</li>
+      <li>เมนู ตารางสอน: กด จัดตารางอัตโนมัติ ระบบจะวางคาบโดยไม่ให้ห้องเรียน ครู หรือห้องสอนซ้อนกัน</li>
+      <li>หากแจ้งว่าจัดไม่ครบ ให้เพิ่มห้องสอน ลดจำนวนคาบ หรือกดจัดใหม่อีกครั้ง</li>
+    </ol>
+    <p class="hint">ห้องที่ไม่ได้ติ๊กห้องพิเศษ ใช้กับวิชาทั่วไป ส่วนวิชาที่ต้องใช้ห้องพิเศษจะถูกจัดเฉพาะในห้องพิเศษเท่านั้น</p>
+  </div>
+</dialog>
+
+<script>
+/* ตั้งค่า: นำค่าจาก Supabase > Project Settings > API มาใส่ */
+const SB_URL = 'https://YOUR-PROJECT.supabase.co';
+const SB_KEY = 'YOUR-ANON-PUBLIC-KEY';
+
+const sb = supabase.createClient(SB_URL, SB_KEY);
+const DAYS = ['จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์'], PERIODS = 8;
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let me = null, D = {classes:[],rooms:[],subjects:[],teachers:[],tt:[]};
+let tab = 'tt', view = {by:'class', id:''}, flash = null, authMode = 'in';
+
+$('#guideBtn').onclick = () => $('#guide').showModal();
+$('#outBtn').onclick = async () => { await sb.auth.signOut(); me = null; boot(); };
+
+function note(text, kind='ok'){ flash = {text, kind}; }
+function flashHtml(){ const f = flash; flash = null; return f ? `<div class="msg ${f.kind}" role="status">${esc(f.text)}</div>` : ''; }
+
+async function boot(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if(!session){ $('#who').textContent=''; $('#outBtn').hidden = true; return showAuth(); }
+  await load();
+}
+
+async function showAuth(){
+  const { data: cls } = await sb.from('classes').select('*').order('name');
+  const up = authMode === 'up';
+  $('#app').innerHTML = `<div class="card auth">
+    <h3>${up ? 'สมัครสมาชิก' : 'เข้าสู่ระบบ'}</h3>${flashHtml()}
+    <form id="af">
+      ${up ? `<label>ชื่อ-นามสกุล<input name="name" required></label>
+      <label>บทบาท<select name="role" id="role"><option value="student">นักเรียน</option><option value="teacher">ครู</option></select></label>
+      <label id="clsL">ห้องเรียน<select name="class_id">${(cls||[]).map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select></label>
+      <label id="codeL" hidden>รหัสครู<input name="code" type="password"></label>` : ''}
+      <label>อีเมล<input name="email" type="email" required autocomplete="email"></label>
+      <label>รหัสผ่าน (อย่างน้อย 6 ตัวอักษร)<input name="password" type="password" minlength="6" required autocomplete="${up?'new-password':'current-password'}"></label>
+      <button>${up ? 'สมัครสมาชิก' : 'เข้าสู่ระบบ'}</button>
+    </form>
+    <button class="link" id="sw">${up ? 'มีบัญชีแล้ว เข้าสู่ระบบ' : 'ยังไม่มีบัญชี สมัครสมาชิก'}</button></div>`;
+  $('#sw').onclick = () => { authMode = up ? 'in' : 'up'; showAuth(); };
+  if(up) $('#role').onchange = e => { const t = e.target.value === 'teacher'; $('#clsL').hidden = t; $('#codeL').hidden = !t; };
+  $('#af').onsubmit = async e => {
+    e.preventDefault();
+    const f = Object.fromEntries(new FormData(e.target));
+    const r = up
+      ? await sb.auth.signUp({ email:f.email, password:f.password, options:{ data:{ name:f.name, role:f.role, code:f.code||'', class_id:f.role==='student'?(f.class_id||''):'' } } })
+      : await sb.auth.signInWithPassword({ email:f.email, password:f.password });
+    if(r.error){ note('ดำเนินการไม่สำเร็จ: ' + r.error.message, 'err'); return showAuth(); }
+    if(up && !r.data.session){ authMode = 'in'; note('สมัครสำเร็จ กรุณายืนยันอีเมลแล้วเข้าสู่ระบบ'); return showAuth(); }
+    load();
+  };
+}
+
+async function load(){
+  const { data:{ user } } = await sb.auth.getUser();
+  const [p,c,r,s,t,tt] = await Promise.all([
+    sb.from('profiles').select('*').eq('id', user.id).single(),
+    sb.from('classes').select('*').order('name'),
+    sb.from('rooms').select('*').order('name'),
+    sb.from('subjects').select('*').order('name'),
+    sb.from('profiles').select('*').eq('role','teacher').order('full_name'),
+    sb.from('timetable').select('*')
+  ]);
+  me = p.data;
+  D = { classes:c.data||[], rooms:r.data||[], subjects:s.data||[], teachers:t.data||[], tt:tt.data||[] };
+  if(!view.id){
+    if(me.role === 'teacher'){ view = { by:'teacher', id:me.id }; }
+    else { view = { by:'class', id: me.class_id || D.classes[0]?.id || '' }; }
+  }
+  $('#who').textContent = `${me.full_name} (${me.role === 'teacher' ? 'ครู' : 'นักเรียน'})`;
+  $('#outBtn').hidden = false;
+  render();
+}
+
+const isT = () => me?.role === 'teacher';
+const nameOf = (list, id, k='name') => list.find(x => x.id === id)?.[k] || '-';
+
+function render(){
+  const tabs = isT() ? `<div class="tabs"><button class="${tab==='tt'?'on':''}" data-t="tt">ตารางสอน</button><button class="${tab==='data'?'on':''}" data-t="data">ข้อมูลพื้นฐาน</button></div>` : '';
+  $('#app').innerHTML = tabs + flashHtml() + (tab === 'data' && isT() ? dataHtml() : ttHtml());
+  document.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { tab = b.dataset.t; render(); });
+  tab === 'data' && isT() ? bindData() : bindTT();
+}
+
+/* ---------- ตารางสอน ---------- */
+function ttHtml(){
+  const src = { class:D.classes, room:D.rooms, teacher:D.teachers.map(t=>({id:t.id,name:t.full_name})) }[view.by];
+  const rows = D.tt.filter(x => x[view.by+'_id'] === view.id);
+  const cell = (d,p) => {
+    const x = rows.find(r => r.day === d && r.period === p);
+    if(!x) return '<td></td>';
+    const sub = D.subjects.find(s => s.id === x.subject_id);
+    const room = D.rooms.find(r => r.id === x.room_id);
+    const extra = view.by === 'class' ? nameOf(D.teachers, x.teacher_id, 'full_name') : view.by === 'teacher' ? nameOf(D.classes, x.class_id) : nameOf(D.classes, x.class_id);
+    return `<td class="${room?.is_special?'s':'f'}"><b>${esc(sub?.name)}</b><small>${esc(extra)}</small><small>${view.by==='room'?esc(nameOf(D.teachers,x.teacher_id,'full_name')):esc(room?.name)}</small></td>`;
+  };
+  let body = '';
+  for(let p=1;p<=PERIODS;p++){ body += `<tr><th>คาบ ${p}</th>${DAYS.map((_,d)=>cell(d,p)).join('')}</tr>`; }
+  return `<div class="bar">
+    <select id="vby" aria-label="มุมมอง"><option value="class" ${view.by==='class'?'selected':''}>ตามห้องเรียน</option><option value="teacher" ${view.by==='teacher'?'selected':''}>ตามครู</option><option value="room" ${view.by==='room'?'selected':''}>ตามห้องสอน</option></select>
+    <select id="vid" aria-label="เลือกรายการ">${src.map(x=>`<option value="${x.id}" ${x.id===view.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select>
+    ${isT() ? `<div class="sp"><button id="gen">จัดตารางอัตโนมัติ</button><button class="ghost" id="clr">ล้างตารางทั้งหมด</button></div>` : ''}
+  </div>
+  ${D.tt.length || src.length ? '' : '<p class="hint">ยังไม่มีข้อมูล</p>'}
+  <div class="wrap"><table class="tt"><thead><tr><th></th>${DAYS.map(d=>`<th>${d}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>
+  <p class="hint">ช่องสีเหลืองอ่อนคือคาบที่สอนในห้องพิเศษ</p>`;
+}
+function bindTT(){
+  const by = $('#vby'); if(!by) return;
+  by.onchange = e => { view = { by:e.target.value, id:'' }; const l = {class:D.classes,room:D.rooms,teacher:D.teachers.map(t=>({id:t.id}))}[view.by]; view.id = l[0]?.id || ''; render(); };
+  $('#vid').onchange = e => { view.id = e.target.value; render(); };
+  if(isT()){
+    $('#gen').onclick = generate;
+    $('#clr').onclick = async () => { if(!confirm('ล้างตารางสอนทั้งหมดใช่หรือไม่')) return; await sb.from('timetable').delete().neq('id','00000000-0000-0000-0000-000000000000'); note('ล้างตารางแล้ว'); load(); };
+  }
+}
+
+/* ---------- ตัวจัดตารางอัตโนมัติ ---------- */
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function attempt(jobs){
+  const used = new Set(), out = [], miss = [];
+  const perDay = {};
+  const slots = []; for(let d=0;d<5;d++) for(let p=1;p<=PERIODS;p++) slots.push([d,p]);
+  for(const s of jobs){
+    const rooms = D.rooms.filter(r => r.is_special === s.requires_special);
+    const key = s.id;
+    const cand = shuffle(slots.slice()).sort((a,b) => (perDay[key+a[0]]||0) - (perDay[key+b[0]]||0));
+    let done = false;
+    for(const [d,p] of cand){
+      if(used.has(`c${s.class_id}|${d}|${p}`) || used.has(`t${s.teacher_id}|${d}|${p}`)) continue;
+      const room = rooms.find(r => !used.has(`r${r.id}|${d}|${p}`));
+      if(!room) continue;
+      used.add(`c${s.class_id}|${d}|${p}`); used.add(`t${s.teacher_id}|${d}|${p}`); used.add(`r${room.id}|${d}|${p}`);
+      perDay[key+d] = (perDay[key+d]||0) + 1;
+      out.push({ class_id:s.class_id, subject_id:s.id, teacher_id:s.teacher_id, room_id:room.id, day:d, period:p });
+      done = true; break;
+    }
+    if(!done) miss.push(s);
+  }
+  return { out, miss };
+}
+async function generate(){
+  if(!D.subjects.length || !D.rooms.length){ note('กรุณาเพิ่มรายวิชาและห้องสอนก่อน','err'); return render(); }
+  if(D.tt.length && !confirm('ตารางเดิมจะถูกแทนที่ ต้องการดำเนินการต่อหรือไม่')) return;
+  const btn = $('#gen'); btn.disabled = true; btn.textContent = 'กำลังจัดตาราง...';
+  const jobs = [];
+  D.subjects.forEach(s => { for(let i=0;i<s.periods_per_week;i++) jobs.push(s); });
+  let best = null;
+  for(let n=0;n<150;n++){
+    jobs.sort((a,b) => (b.requires_special - a.requires_special) || (Math.random() - .5));
+    const r = attempt(jobs);
+    if(!best || r.miss.length < best.miss.length) best = r;
+    if(!r.miss.length) break;
+  }
+  await sb.from('timetable').delete().neq('id','00000000-0000-0000-0000-000000000000');
+  const { error } = await sb.from('timetable').insert(best.out);
+  if(error) note('บันทึกไม่สำเร็จ: ' + error.message, 'err');
+  else if(best.miss.length){
+    const names = [...new Set(best.miss.map(s => `${s.name} (${nameOf(D.classes,s.class_id)})`))].join(', ');
+    note(`จัดได้ ${best.out.length} คาบ แต่ยังจัดไม่ได้ ${best.miss.length} คาบ ได้แก่ ${names} ลองเพิ่มห้องสอนหรือลดจำนวนคาบ`, 'err');
+  } else note(`จัดตารางสำเร็จ ${best.out.length} คาบ ไม่มีคาบซ้อนกัน`);
+  load();
+}
+
+/* ---------- ข้อมูลพื้นฐาน ---------- */
+function dataHtml(){
+  const li = (t, id, label, sub='') => `<li><span>${esc(label)} <small>${esc(sub)}</small></span><button class="danger" data-del="${t}:${id}">ลบ</button></li>`;
+  return `${D.tt.length ? '<p class="hint">หลังแก้ไขข้อมูล ให้กลับไปกด จัดตารางอัตโนมัติ อีกครั้ง</p>' : ''}
+  <div class="grid">
+    <div class="card"><h3>ห้องเรียน (ชั้น)</h3>
+      <form data-add="classes"><input type="text" name="name" placeholder="เช่น ม.1/1" required><button>เพิ่ม</button></form>
+      <ul class="l">${D.classes.map(c=>li('classes',c.id,c.name)).join('')}</ul></div>
+    <div class="card"><h3>ห้องสอน</h3>
+      <form data-add="rooms"><input type="text" name="name" placeholder="เช่น ห้องวิทยาศาสตร์" required>
+        <label><input type="checkbox" name="is_special"> ห้องพิเศษ</label><button>เพิ่ม</button></form>
+      <ul class="l">${D.rooms.map(r=>li('rooms',r.id,r.name,r.is_special?'ห้องพิเศษ':'')).join('')}</ul></div>
+    <div class="card" style="grid-column:1/-1"><h3>รายวิชา</h3>
+      <form data-add="subjects"><input type="text" name="name" placeholder="ชื่อวิชา" required>
+        <select name="class_id" required aria-label="ห้องเรียน">${D.classes.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select>
+        <select name="teacher_id" required aria-label="ครูผู้สอน">${D.teachers.map(t=>`<option value="${t.id}">${esc(t.full_name)}</option>`).join('')}</select>
+        <input type="number" name="periods_per_week" min="1" max="20" value="2" required aria-label="คาบต่อสัปดาห์" style="width:90px">
+        <label><input type="checkbox" name="requires_special"> ต้องใช้ห้องพิเศษ</label><button>เพิ่มรายวิชา</button></form>
+      <ul class="l" style="max-height:340px">${D.subjects.map(s=>li('subjects',s.id,s.name,`${nameOf(D.classes,s.class_id)} / ${nameOf(D.teachers,s.teacher_id,'full_name')} / ${s.periods_per_week} คาบ${s.requires_special?' / ห้องพิเศษ':''}`)).join('')}</ul></div>
+  </div>`;
+}
+function bindData(){
+  document.querySelectorAll('[data-add]').forEach(f => f.onsubmit = async e => {
+    e.preventDefault();
+    const fd = new FormData(f), row = {};
+    for(const [k,v] of fd) row[k] = v;
+    f.querySelectorAll('input[type=checkbox]').forEach(c => row[c.name] = c.checked);
+    if(row.periods_per_week) row.periods_per_week = +row.periods_per_week;
+    const { error } = await sb.from(f.dataset.add).insert(row);
+    note(error ? 'เพิ่มไม่สำเร็จ: ' + error.message : 'เพิ่มข้อมูลแล้ว', error ? 'err' : 'ok');
+    load();
+  });
+  document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+    const [t,id] = b.dataset.del.split(':');
+    if(!confirm('ยืนยันการลบ ข้อมูลที่เกี่ยวข้องและตารางที่จัดไว้จะถูกลบด้วย')) return;
+    const { error } = await sb.from(t).delete().eq('id', id);
+    note(error ? 'ลบไม่สำเร็จ: ' + error.message : 'ลบข้อมูลแล้ว', error ? 'err' : 'ok');
+    load();
+  });
+}
+
+sb.auth.onAuthStateChange(() => {});
+boot();
+</script>
+</body>
+</html>
